@@ -1,23 +1,26 @@
 name: iso_build
 on:
   workflow_dispatch:
-  schedule:
-    - cron:  '30 2 * * *'
+  #schedule:
+  #  - cron:  '30 2 * * *'
 
 jobs:
   prepare_release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - 
+        name: Prepare Cancel Workflow
         uses: styfle/cancel-workflow-action@0.8.0
         with:
           access_token: ${{ github.token }}
       - 
+        name: Get current time
         id: time
         uses: nanzm/get-time-action@v1.1
         with:
           format: 'YYYYMMDDHHmm'
       - 
+        name: Prepare Release
         id: release
         uses: actions/create-release@v1
         env:
@@ -36,33 +39,40 @@ jobs:
     needs: prepare_release    
     strategy:
       matrix:
+        ###### EDIT HERE ######
         EDITION: [kde]
-        BRANCH: [testing]
+        BRANCH: [unstable]
         SCOPE: [full]
+        #######################
     steps:
       - 
+        name: Prepare Cancel Workflow
         uses: styfle/cancel-workflow-action@0.8.0
         with:
           access_token: ${{ github.token }}
       - 
-        name: checkout
+        name: Checkout ISO-Profiles
         uses: actions/checkout@v2
         with:
-          repository: manjaro-plasma/iso-profiles
+          ###### EDIT HERE ######
+          repository: samantha-cruz/iso-profiles
+          #######################
           token: "${{ secrets.GITHUB_TOKEN }}"
           path: 'iso-profiles'
       - 
+        name: Get current time
         id: time
         uses: nanzm/get-time-action@v1.1
         with:
           format: 'YY.MM'          
       -
-        name: install-build-dependencies
+        name: Install Build-Dependencies
         run: |
           sudo apt-get update
           sudo apt install gdisk zip systemd-container bmap-tools asciidoc libarchive-tools git build-essential cmake libarchive-dev pkg-config libcurl4-openssl-dev libgpgme-dev libssl-dev fakeroot dh-autoreconf haveged os-prober kwalify dosfstools libisoburn1 squashfs-tools docbook2x
+
       -
-        name: install-pacman
+        name: Install Pacman
         run: |          
           sudo git clone https://gitlab.manjaro.org/packages/core/pacman.git
           cd pacman
@@ -83,7 +93,7 @@ jobs:
           sudo touch /etc/pacman.d/mirrorlist
           cd ..
       -
-        name: install-keyrings
+        name: Install Keyrings
         run: |          
           sudo git clone https://gitlab.manjaro.org/packages/core/manjaro-keyring.git
           cd manjaro-keyring
@@ -93,7 +103,7 @@ jobs:
           sudo install -m0644 manjaro-trusted /usr/share/pacman/keyrings/
           cd ..
           
-          sudo git clone https://gitlab.archlinux.org/archlinux/archlinux-keyring.git
+          sudo git clone https://projects.archlinux.org/archlinux-keyring.git
           cd archlinux-keyring
           sudo install -m0644 archlinux.gpg /usr/share/pacman/keyrings/
           sudo install -m0644 archlinux-trusted /usr/share/pacman/keyrings/
@@ -103,7 +113,7 @@ jobs:
           sudo pacman-key --init
           sudo pacman-key --populate archlinux manjaro
       -
-        name: install-arch-install-scripts
+        name: Install Arch-Install-Scripts
         run: |          
           pkgver=23
           sudo wget https://git.archlinux.org/arch-install-scripts.git/snapshot/arch-install-scripts-$pkgver.tar.gz
@@ -114,7 +124,7 @@ jobs:
           
           sudo wget https://gitlab.manjaro.org/applications/pacman-mirrors/-/raw/v4.19x-stable/conf/pacman-mirrors.conf -O /etc/pacman-mirrors.conf
       -
-        name: install-calamares-tools
+        name: Install Calamares-Tools
         run: |          
           sudo git clone https://gitlab.manjaro.org/applications/calamares-tools.git
           
@@ -127,16 +137,17 @@ jobs:
           
           install_cal_tools
       -
-        name: install-mkinitcpio
+        name: Install MkInitcpio
         run: |          
           sudo wget https://git.archlinux.org/mkinitcpio.git/snapshot/mkinitcpio-29.tar.gz
           sudo tar -xf mkinitcpio-29.tar.gz
           sudo make -C mkinitcpio-29 install
           sudo sed -i -e 's|File|Path|' /usr/share/libalpm/hooks/*hook
       -
-        name: install-manjaro-tools
+        name: Install Manjaro-Tools
         run: |
           sudo git clone https://gitlab.manjaro.org/tools/development-tools/manjaro-tools.git
+
           install_mjr_tools() {
               cd manjaro-tools
               sudo make SYSCONFDIR=/etc PREFIX=/usr
@@ -147,25 +158,25 @@ jobs:
           
           install_mjr_tools
       -
-        name: build
+        name: Build ISO
         env:
           EDITION: ${{ matrix.EDITION }}
           BRANCH: ${{ matrix.BRANCH }}
           SCOPE: ${{ matrix.SCOPE }}
           VERSION: ${{ steps.time.outputs.time }}-development
+          ###### EDIT HERE ######
+          KERNEL: "linux512"
+          CODE_NAME: "Manjaro KDE with Linux 5.12"
+          #######################
         run: |                
           [ "$SCOPE" == "minimal" ] && unset SCOPE
-          
-          KERNEL=linux512
-          CODE_NAME="Custom ISO with Linux 512"
-          
+                    
           sudo sed -i -e 's|dist_name=$(get_distname)|dist_name=Manjaro|g' /usr/lib/manjaro-tools/util.sh
           sudo sed -i -e 's|iso_name=$(get_osid)|iso_name=manjaro|g' /usr/lib/manjaro-tools/util.sh
           sudo sed -i -e "s|build_mirror='https://manjaro.moson.eu'|build_mirror='https://mirror.easyname.at/manjaro'|g" /usr/lib/manjaro-tools/util.sh
           sudo sed -i -e "s|dist_release=\$(get_release)|dist_release=$VERSION|g" /usr/lib/manjaro-tools/util.sh
           sudo sed -i -e "s|dist_codename=\$(get_codename)|dist_codename=\"$CODE_NAME\"|g" /usr/lib/manjaro-tools/util.sh
-          
-          #sudo buildiso ${SCOPE:+-f} -p $EDITION -b $BRANCH -k $KERNEL -qv   
+           
           sudo buildiso ${SCOPE:+-f} -p $EDITION -b $BRANCH -k $KERNEL
           
           sudo rm -Rf /var/lib/manjaro-tools/buildiso/*
@@ -174,13 +185,16 @@ jobs:
           zip -j -s 1950m $(basename $FILE_PATH).zip $FILE_PATH
           ls -lasih .
           sha256sum $(basename $FILE_PATH).z* > $(basename $FILE_PATH).sha256
+
           echo "FILE_PATH=$(basename $FILE_PATH)" >> $GITHUB_ENV
           echo "FILE_SHA256=$(basename $FILE_PATH).sha256" >> $GITHUB_ENV
           
           FILE_PKG=$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
           cp -v $FILE_PKG .
+
           echo "FILE_PKG=$(basename $FILE_PKG)" >> $GITHUB_ENV
       - 
+        name: Upload Release
         id: upload_release_zip
         uses: actions/upload-release-asset@v1
         env:
@@ -191,12 +205,14 @@ jobs:
           asset_name: ${{ env.FILE_PATH }}.zip
           asset_content_type: application/zip
       - 
+        name: Check for split-zip
         id: check_files
         uses: andstor/file-existence-action@v1
         with:
           files: ${{ env.FILE_PATH }}.z01
           allow_failure: false
       - 
+        name: Upload Release (split-zip)
         id: upload_release_z01
         uses: actions/upload-release-asset@v1
         if: steps.check_files.outputs.files_exists == 'true'
@@ -208,6 +224,7 @@ jobs:
           asset_name: ${{ env.FILE_PATH }}.z01
           asset_content_type: application/zip
       - 
+        name: Upload Checksum file
         id: upload_sha256
         uses: actions/upload-release-asset@v1
         env:
@@ -218,6 +235,7 @@ jobs:
           asset_name: ${{ env.FILE_SHA256 }}
           asset_content_type: text/plain
       - 
+        name: Upload Package list
         id: upload_pkg
         uses: actions/upload-release-asset@v1
         env:
@@ -228,7 +246,7 @@ jobs:
           asset_name: ${{ env.FILE_PKG }}
           asset_content_type: text/plain     
       - 
-        name: rollback_release
+        name: Rollback Release
         if: failure()
         uses: author/action-rollback@stable
         with:
