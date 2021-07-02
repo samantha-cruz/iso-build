@@ -116,11 +116,11 @@ jobs:
         name: Install Arch-Install-Scripts
         run: |          
           pkgver=23
-          sudo wget https://github.com/archlinux/arch-install-scripts/archive/refs/tags/v$pkgver.tar.gz
-          sudo tar -xvf v$pkgver.tar.gz
-          sudo make -C v$pkgver
-          sudo make -C v$pkgver check
-          sudo make -C v$pkgver PREFIX=/usr install
+          sudo wget -O arch-install-scripts-$pkgver.tar.gz https://github.com/archlinux/arch-install-scripts/archive/refs/tags/v$pkgver.tar.gz
+          sudo tar -xvf arch-install-scripts-$pkgver.tar.gz
+          sudo make -C arch-install-scripts-$pkgver
+          sudo make -C arch-install-scripts-$pkgver check
+          sudo make -C arch-install-scripts-$pkgver PREFIX=/usr install
           
           sudo wget https://gitlab.manjaro.org/applications/pacman-mirrors/-/raw/v4.19x-stable/conf/pacman-mirrors.conf -O /etc/pacman-mirrors.conf
       -
