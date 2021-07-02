@@ -40,9 +40,9 @@ jobs:
     strategy:
       matrix:
         ###### EDIT HERE ######
-        EDITION: [xfce]
-        BRANCH: [stable]
-        SCOPE: [minimal]
+        EDITION: [kde]
+        BRANCH: [testing]
+        SCOPE: [full]
         #######################
     steps:
       - 
@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           ###### EDIT HERE ######
-          repository: philmmanjaro/iso-profiles
+          repository: samantha-cruz/iso-profiles
           #######################
           token: "${{ secrets.GITHUB_TOKEN }}"
           path: 'iso-profiles'
