@@ -103,7 +103,7 @@ jobs:
           sudo install -m0644 manjaro-trusted /usr/share/pacman/keyrings/
           cd ..
           
-          sudo git clone https://projects.archlinux.org/archlinux-keyring.git
+          sudo git clone https://gitlab.archlinux.org/archlinux/archlinux-keyring.git
           cd archlinux-keyring
           sudo install -m0644 archlinux.gpg /usr/share/pacman/keyrings/
           sudo install -m0644 archlinux-trusted /usr/share/pacman/keyrings/
@@ -147,7 +147,6 @@ jobs:
         name: Install Manjaro-Tools
         run: |
           sudo git clone https://gitlab.manjaro.org/tools/development-tools/manjaro-tools.git
-
           install_mjr_tools() {
               cd manjaro-tools
               sudo make SYSCONFDIR=/etc PREFIX=/usr
